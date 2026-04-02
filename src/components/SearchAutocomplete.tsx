@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, Loader2, TrendingUp, ArrowRight } from 'lucide-react';
+import { useProductStore, formatPrice } from '@/store/product-store';
 
 interface Suggestion {
   slug: string;
@@ -43,6 +44,7 @@ export default function SearchAutocomplete({
   onClose,
 }: SearchAutocompleteProps) {
   const router = useRouter();
+  const selectedCurrency = useProductStore((s) => s.selectedCurrency);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -218,7 +220,7 @@ export default function SearchAutocomplete({
                   </div>
                   {/* Price */}
                   <span className="text-sm font-bold text-[#B12704] shrink-0">
-                    {item.priceGNF.toLocaleString('fr-FR')} GNF
+                    {formatPrice(item.priceGNF, selectedCurrency)}
                   </span>
                 </a>
               </li>

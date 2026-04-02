@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 // ============================================================
 // Types — previously imported from @/data/product
@@ -117,33 +118,49 @@ interface ProductState {
   nextSocialProof: () => void;
 }
 
-export const useProductStore = create<ProductState>((set) => ({
-  selectedCountry: countries[0],
-  selectedCurrency: "GNF",
-  deliveryType: "pickup",
-  selectedPickupPoint: "",
-  selectedCity: "Conakry",
-  paymentMethod: "orange_money",
-  isWishlisted: false,
-  cartCount: 0,
-  cartTotal: 0,
-  showSocialProof: true,
-  socialProofIndex: 0,
+export const useProductStore = create<ProductState>()(
+  persist(
+    (set) => ({
+      selectedCountry: countries[0],
+      selectedCurrency: "GNF",
+      deliveryType: "pickup",
+      selectedPickupPoint: "",
+      selectedCity: "Conakry",
+      paymentMethod: "orange_money",
+      isWishlisted: false,
+      cartCount: 0,
+      cartTotal: 0,
+      showSocialProof: true,
+      socialProofIndex: 0,
 
-  setSelectedCountry: (code: string) => {
-    const country = countries.find((c) => c.code === code) || countries[0];
-    set({
-      selectedCountry: country,
-      selectedCurrency: country.currency as Currency,
-      selectedCity: country.capital,
-    });
-  },
+      setSelectedCountry: (code: string) => {
+        const country = countries.find((c) => c.code === code) || countries[0];
+        set({
+          selectedCountry: country,
+          selectedCurrency: country.currency as Currency,
+          selectedCity: country.capital,
+        });
+      },
 
-  setSelectedCurrency: (c: Currency) => set({ selectedCurrency: c }),
-  setDeliveryType: (type: "domicile" | "pickup") => set({ deliveryType: type }),
-  setSelectedPickupPoint: (id: string) => set({ selectedPickupPoint: id }),
-  setSelectedCity: (city: string) => set({ selectedCity: city }),
-  setPaymentMethod: (m: "orange_money" | "mtn_momo" | "wave" | "cash" | "carte") => set({ paymentMethod: m }),
-  toggleWishlist: () => set((s) => ({ isWishlisted: !s.isWishlisted })),
-  nextSocialProof: () => set((s) => ({ socialProofIndex: (s.socialProofIndex + 1) % socialProofEvents.length })),
-}));
+      setSelectedCurrency: (c: Currency) => set({ selectedCurrency: c }),
+      setDeliveryType: (type: "domicile" | "pickup") => set({ deliveryType: type }),
+      setSelectedPickupPoint: (id: string) => set({ selectedPickupPoint: id }),
+      setSelectedCity: (city: string) => set({ selectedCity: city }),
+      setPaymentMethod: (m: "orange_money" | "mtn_momo" | "wave" | "cash" | "carte") => set({ paymentMethod: m }),
+      toggleWishlist: () => set((s) => ({ isWishlisted: !s.isWishlisted })),
+      nextSocialProof: () => set((s) => ({ socialProofIndex: (s.socialProofIndex + 1) % socialProofEvents.length })),
+    }),
+    {
+      name: "le-marche-product-prefs",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        selectedCountry: state.selectedCountry,
+        selectedCurrency: state.selectedCurrency,
+        deliveryType: state.deliveryType,
+        selectedPickupPoint: state.selectedPickupPoint,
+        selectedCity: state.selectedCity,
+        paymentMethod: state.paymentMethod,
+      }),
+    }
+  )
+);

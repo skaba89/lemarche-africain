@@ -4,6 +4,14 @@ import { rateLimit } from '@/lib/rate-limit'
 import { sanitizeString, sanitizePhone } from '@/lib/sanitize'
 import { validateSession } from '@/app/api/auth/login/route'
 
+// Custom error for transaction-validation failures (maps to 400)
+class OrderValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'OrderValidationError'
+  }
+}
+
 // Centralized delivery fee logic matching frontend
 function getDeliveryFee(subtotalGNF: number, deliveryType: string): number {
   if (subtotalGNF === 0) return 0;
@@ -109,7 +117,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { items, deliveryType, paymentMethod, couponDiscount, couponLabel, couponCode, userId } = body
+    // BUG 1 FIX: Do NOT trust client-provided couponDiscount / couponLabel.
+    // Only accept couponCode; we re-validate and compute the discount server-side.
+    const { items, deliveryType, paymentMethod, couponCode, userId } = body
     const fullName = sanitizeString(body.fullName || '')
     const phone = sanitizePhone(body.phone || '')
     const city = sanitizeString(body.city || '')
@@ -124,129 +134,171 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate subtotal from items
-    let subtotalGNF = 0
-    const validatedItems: Array<{
-      productId: string;
-      name: string;
-      slug: string;
-      price: number;
-      quantity: number;
-      color: string | null;
-      image: string | null;
-    }> = []
+    // BUG 2 FIX: Wrap the entire order creation in a Prisma transaction
+    // so that stock checks, decrements, coupon validation, and order.create
+    // are atomic — preventing race-condition overselling.
+    const order = await db.$transaction(async (tx) => {
+      // ---- Validate items & compute subtotal ----
+      let subtotalGNF = 0
+      const validatedItems: Array<{
+        productId: string
+        name: string
+        slug: string
+        price: number
+        quantity: number
+        color: string | null
+        image: string | null
+      }> = []
 
-    for (const item of items) {
-      const product = await db.product.findUnique({
-        where: { id: item.productId },
-      })
+      for (const item of items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+        })
 
-      if (!product) {
-        return NextResponse.json(
-          { error: `Produit ${item.productId} non trouvé` },
-          { status: 400 }
-        )
-      }
-
-      if (!product.isActive) {
-        return NextResponse.json(
-          { error: `Le produit ${product.name} n'est plus disponible` },
-          { status: 400 }
-        )
-      }
-
-      if (product.stock < item.quantity) {
-        return NextResponse.json(
-          { error: `Stock insuffisant pour ${product.name}. Disponible: ${product.stock}` },
-          { status: 400 }
-        )
-      }
-
-      subtotalGNF += product.priceGNF * item.quantity
-      validatedItems.push({
-        productId: product.id,
-        name: product.name,
-        slug: product.slug,
-        price: product.priceGNF,
-        quantity: item.quantity,
-        color: item.color || null,
-        image: product.images ? JSON.parse(product.images)[0] : null,
-      })
-    }
-
-    // Calculate delivery fee using centralized logic
-    const deliveryFeeGNF = getDeliveryFee(subtotalGNF, deliveryType || 'pickup')
-    const discountGNF = couponDiscount || 0
-    const totalGNF = subtotalGNF + deliveryFeeGNF - discountGNF
-
-    // Generate order number
-    const orderNumber = `LMA-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-
-    // Create order
-    const order = await db.order.create({
-      data: {
-        orderNumber,
-        items: JSON.stringify(validatedItems),
-        subtotalGNF,
-        deliveryFeeGNF,
-        totalGNF,
-        status: 'pending',
-        paymentMethod,
-        deliveryType: deliveryType || 'pickup',
-        fullName,
-        phone,
-        city,
-        address: address || null,
-        notes: notes || null,
-        couponDiscount: discountGNF > 0 ? discountGNF : null,
-        couponLabel: couponLabel || null,
-        couponCode: couponCode || null,
-        ...(userId ? { userId } : {}),
-      },
-    })
-
-    // Update stock for each product
-    for (const item of validatedItems) {
-      await db.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
-      })
-    }
-
-    // Increment coupon usage count
-    if (couponCode) {
-      await db.coupon.update({
-        where: { code: couponCode },
-        data: { usedCount: { increment: 1 } },
-      })
-    }
-
-    // Award loyalty points if user is authenticated
-    if (userId) {
-      try {
-        const points = Math.floor(totalGNF / 1000)
-        if (points > 0) {
-          await db.loyaltyPoints.create({
-            data: {
-              userId,
-              points,
-              source: 'purchase',
-              description: `Points gagnes pour la commande ${orderNumber} (${totalGNF.toLocaleString('fr-FR')} GNF)`,
-              orderId: order.id,
-            },
-          })
-          await db.user.update({
-            where: { id: userId },
-            data: { pointsBalance: { increment: points } },
-          })
+        if (!product) {
+          throw new OrderValidationError(`Produit ${item.productId} non trouvé`)
         }
-      } catch (pointsError) {
-        console.error('Error awarding loyalty points:', pointsError)
+
+        if (!product.isActive) {
+          throw new OrderValidationError(`Le produit ${product.name} n'est plus disponible`)
+        }
+
+        if (product.stock < item.quantity) {
+          throw new OrderValidationError(
+            `Stock insuffisant pour ${product.name}. Disponible: ${product.stock}`
+          )
+        }
+
+        subtotalGNF += product.priceGNF * item.quantity
+        validatedItems.push({
+          productId: product.id,
+          name: product.name,
+          slug: product.slug,
+          price: product.priceGNF,
+          quantity: item.quantity,
+          color: item.color || null,
+          image: product.images ? JSON.parse(product.images)[0] : null,
+        })
       }
-    }
+
+      // ---- Delivery fee ----
+      const deliveryFeeGNF = getDeliveryFee(subtotalGNF, deliveryType || 'pickup')
+
+      // ---- BUG 1 FIX: Server-side coupon re-validation ----
+      let discountGNF = 0
+      let couponLabel: string | null = null
+
+      if (couponCode) {
+        const coupon = await tx.coupon.findUnique({
+          where: { code: couponCode },
+        })
+
+        if (!coupon) {
+          throw new OrderValidationError('Code promo invalide')
+        }
+        if (!coupon.isActive) {
+          throw new OrderValidationError('Ce code promo n\'est plus actif')
+        }
+        if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+          throw new OrderValidationError('Ce code promo a expiré')
+        }
+        if (coupon.usedCount >= coupon.maxUses) {
+          throw new OrderValidationError('Ce code promo a atteint sa limite d\'utilisation')
+        }
+        if (subtotalGNF < coupon.minOrderGNF) {
+          throw new OrderValidationError(
+            `Commande minimum de ${coupon.minOrderGNF.toLocaleString('fr-FR')} GNF requise pour ce code promo`
+          )
+        }
+
+        // Calculate actual discount based on coupon type
+        if (coupon.discountType === 'percentage') {
+          discountGNF = Math.floor(subtotalGNF * coupon.discountValue / 100)
+        } else {
+          discountGNF = coupon.discountValue
+        }
+
+        // Cap discount so total can never go below 0
+        discountGNF = Math.min(discountGNF, subtotalGNF)
+        couponLabel = coupon.label
+
+        // Increment coupon usage count (atomic within this transaction)
+        await tx.coupon.update({
+          where: { code: couponCode },
+          data: { usedCount: { increment: 1 } },
+        })
+      }
+
+      const totalGNF = subtotalGNF + deliveryFeeGNF - discountGNF
+
+      // ---- Generate order number ----
+      const orderNumber = `LMA-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
+
+      // ---- Create order ----
+      const newOrder = await tx.order.create({
+        data: {
+          orderNumber,
+          items: JSON.stringify(validatedItems),
+          subtotalGNF,
+          deliveryFeeGNF,
+          totalGNF,
+          status: 'pending',
+          paymentMethod,
+          deliveryType: deliveryType || 'pickup',
+          fullName,
+          phone,
+          city,
+          address: address || null,
+          notes: notes || null,
+          couponDiscount: discountGNF > 0 ? discountGNF : null,
+          couponLabel,
+          couponCode: couponCode || null,
+          ...(userId ? { userId } : {}),
+        },
+      })
+
+      // ---- Update stock (atomic within transaction) ----
+      for (const item of validatedItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        })
+      }
+
+      // ---- Award loyalty points if user is authenticated ----
+      if (userId) {
+        try {
+          const points = Math.floor(totalGNF / 1000)
+          if (points > 0) {
+            await tx.loyaltyPoints.create({
+              data: {
+                userId,
+                points,
+                source: 'purchase',
+                description: `Points gagnes pour la commande ${orderNumber} (${totalGNF.toLocaleString('fr-FR')} GNF)`,
+                orderId: newOrder.id,
+              },
+            })
+            await tx.user.update({
+              where: { id: userId },
+              data: { pointsBalance: { increment: points } },
+            })
+          }
+        } catch (pointsError) {
+          console.error('Error awarding loyalty points:', pointsError)
+        }
+      }
+
+      return newOrder
+    })
 
     return NextResponse.json({ order }, { status: 201 })
   } catch (error) {
+    // Distinguish validation errors (400) from internal errors (500)
+    if (error instanceof OrderValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
     console.error('Error creating order:', error)
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }

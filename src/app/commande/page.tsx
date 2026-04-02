@@ -131,7 +131,7 @@ export default function CommandePage() {
   const savings = useMemo(() => getCartSavingsGNF(items), [items]);
   const itemCount = useMemo(() => getCartItemCount(items), [items]);
   const deliveryFee = useMemo(() => getDeliveryFee(subtotal, deliveryType), [subtotal, deliveryType]);
-  const total = subtotal + deliveryFee - couponDiscount;
+  const total = Math.max(0, subtotal + deliveryFee - couponDiscount);
 
   const updateForm = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

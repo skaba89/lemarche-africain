@@ -2729,3 +2729,50 @@ Add 4 high-impact UX improvements: (1) Slide-in Cart Drawer, (2) Promotional Her
 - `bun run lint` — 0 errors
 - Dev server compiles successfully (GET / 200 in ~137ms)
 
+---
+## Task ID: qa-fix-1/2/3 - backend-security-fixes
+### Work Task
+Fix 3 critical backend security bugs: (C1) client-trusted coupon discount allowing free orders, (C2) non-atomic order creation causing race-condition overselling, (C3+C4) invoice and order detail endpoints exposing PII without authentication.
+
+### Work Summary
+
+**BUG 1 (C1) — Client-trusted coupon discount in `src/app/api/orders/route.ts`:**
+- Removed `couponDiscount` and `couponLabel` from client request body destructuring — these are no longer trusted from the client
+- Only `couponCode` is accepted from the client
+- Added full server-side coupon re-validation inside the transaction:
+  1. Looks up coupon by `code` in DB via `tx.coupon.findUnique`
+  2. Checks `isActive`, not expired (`expiresAt < new Date()`), not exhausted (`usedCount >= maxUses`), subtotal meets `minOrderGNF`
+  3. Calculates actual discount based on `discountType` ('percentage' uses `Math.floor(subtotalGNF * discountValue / 100)`, 'fixed' uses `discountValue` directly)
+  4. Caps discount at subtotal amount (`Math.min(discountGNF, subtotalGNF)`) so total can never go below 0
+  5. Uses `coupon.label` from DB for `couponLabel` field
+  6. Returns French error messages for each validation failure (400 status)
+- Created `OrderValidationError` custom error class to distinguish validation errors (400) from internal errors (500) when thrown inside the transaction
+
+**BUG 2 (C2) — Non-atomic order creation in `src/app/api/orders/route.ts`:**
+- Wrapped entire POST handler's core logic (stock validation, item processing, coupon validation, order creation, stock decrements, coupon usage increment, loyalty points) in `db.$transaction(async (tx) => { ... })`
+- All `db.product.findUnique`, `db.product.update`, `db.order.create`, `db.coupon.update`, `db.loyaltyPoints.create`, `db.user.update` calls changed to use `tx.*` for transactional consistency
+- If any step fails, the entire transaction rolls back — preventing partial state (e.g., order created but stock not decremented)
+- Eliminates race condition where two concurrent requests could both pass stock checks and both decrement, causing overselling
+- The outer `try/catch` distinguishes `OrderValidationError` (400) from other errors (500)
+
+**BUG 3 (C3+C4) — PII exposure without auth:**
+- `src/app/api/orders/[orderNumber]/invoice/route.ts`:
+  - Added mandatory authentication check: reads token from `le-marche-token` cookie or `Authorization: Bearer` header
+  - Returns 401 if no token present or `validateSession(token)` returns null
+  - After fetching order, checks ownership: if `order.userId` exists, verifies `order.userId === session.userId`
+  - Returns 403 if authenticated user doesn't own the order
+- `src/app/api/orders/[orderNumber]/route.ts`:
+  - Added same authentication check pattern (cookie + bearer token → `validateSession()`)
+  - Returns 401 for missing/invalid token
+  - Added same ownership check: if order has userId, must match session.userId
+  - Returns 403 for unauthorized access
+- Both endpoints already imported `validateSession` but never called it — the import is now actively used
+
+**Files Modified:**
+1. `src/app/api/orders/route.ts` — Complete POST handler rewrite (transaction + coupon re-validation)
+2. `src/app/api/orders/[orderNumber]/invoice/route.ts` — Auth + ownership check added
+3. `src/app/api/orders/[orderNumber]/route.ts` — Auth + ownership check added
+
+**Verification:**
+- `npm run lint` — 0 errors
+- Dev server compiles with no errors

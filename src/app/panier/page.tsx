@@ -36,6 +36,7 @@ export default function PanierPage() {
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const selectedCurrency = useProductStore((s) => s.selectedCurrency);
+  const deliveryType = useProductStore((s) => s.deliveryType);
   const paymentMethod = useProductStore((s) => s.paymentMethod);
   const setPaymentMethod = useProductStore((s) => s.setPaymentMethod);
 
@@ -50,8 +51,8 @@ export default function PanierPage() {
   const subtotal = useMemo(() => getCartSubtotalGNF(items), [items]);
   const savings = useMemo(() => getCartSavingsGNF(items), [items]);
   const itemCount = useMemo(() => getCartItemCount(items), [items]);
-  const deliveryFee = getDeliveryFee(subtotal, 'domicile');
-  const total = subtotal - couponDiscount + deliveryFee;
+  const deliveryFee = getDeliveryFee(subtotal, deliveryType);
+  const total = Math.max(0, subtotal - couponDiscount + deliveryFee);
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -272,7 +273,10 @@ export default function PanierPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearCart}
+                onClick={() => {
+                  if (!window.confirm('Voulez-vous vraiment vider votre panier ?')) return;
+                  clearCart();
+                }}
                 className="text-[#B12704] hover:text-[#8B1A03] hover:bg-red-50 text-xs"
               >
                 Vider le panier

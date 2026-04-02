@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Star, Heart, ShoppingCart, Truck, ShieldCheck, ArrowUpDown, Eye } from 'lucide-react';
 import { useProductStore, formatPrice } from '@/store/product-store';
 import { useCartStore } from '@/store/cart-store';
@@ -35,15 +35,13 @@ export default function ProductCard({ product }: ProductCardProps) {
   const selectedCurrency = useProductStore((s) => s.selectedCurrency);
   const comparisonStore = useComparisonStore();
   const isInComparison = comparisonStore.isInComparison(product.id);
-  const [isWishlisted, setIsWishlisted] = useState(() => {
-    if (typeof window === 'undefined') return false;
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  useEffect(() => {
     try {
       const stored: string[] = JSON.parse(localStorage.getItem('le-marche-wishlist') || '[]');
-      return Array.isArray(stored) && stored.includes(product.slug);
-    } catch {
-      return false;
-    }
-  });
+      if (Array.isArray(stored) && stored.includes(product.slug)) setIsWishlisted(true);
+    } catch { /* ignore */ }
+  }, [product.slug]);
   const images: string[] = useMemo(() => {
     try { return JSON.parse(product.images); } catch { return []; }
   }, [product.images]);

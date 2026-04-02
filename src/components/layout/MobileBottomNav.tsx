@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Home, Search, ShoppingCart, Heart, User } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 
@@ -47,6 +47,7 @@ function subscribeToWishlist(callback: () => void): () => void {
 }
 
 export default function MobileBottomNav() {
+  const router = useRouter();
   const pathname = usePathname();
   const items = useCartStore((s) => s.items);
   const wishlistCount = useSyncExternalStore(subscribeToWishlist, getWishlistCount, () => 0);
@@ -61,8 +62,7 @@ export default function MobileBottomNav() {
 
   const handleFavorisClick = () => {
     // Navigate to compte page with wishlist tab
-    window.location.hash = '#favoris';
-    window.location.href = '/compte#favoris';
+    router.push('/compte#favoris');
   };
 
   return (

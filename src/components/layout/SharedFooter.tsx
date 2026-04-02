@@ -265,7 +265,7 @@ export default function SharedFooter() {
         <div className="mx-auto flex max-w-[1500px] flex-col items-center gap-4 md:flex-row md:justify-between">
           {/* Copyright */}
           <p className="text-center text-xs text-gray-500">
-            &copy; 2024 Le Marché Africain. Tous droits réservés.
+            &copy; {new Date().getFullYear()} Le Marché Africain. Tous droits réservés.
           </p>
 
           {/* Separator (visible on md+) */}

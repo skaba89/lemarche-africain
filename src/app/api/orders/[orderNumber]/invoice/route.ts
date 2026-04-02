@@ -25,11 +25,26 @@ export async function GET(
     )
   }
 
-  // Optional auth: if token present, validate it
+  // BUG 3 FIX: Require authentication — validate session token
   const cookieToken = request.cookies.get('le-marche-token')?.value
   const authHeader = request.headers.get('authorization')
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
   const token = cookieToken || bearerToken
+
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Authentification requise' },
+      { status: 401 }
+    )
+  }
+
+  const session = validateSession(token)
+  if (!session) {
+    return NextResponse.json(
+      { error: 'Session invalide ou expirée' },
+      { status: 401 }
+    )
+  }
 
   try {
     const { orderNumber } = await params
@@ -40,6 +55,14 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json({ error: 'Commande non trouvee' }, { status: 404 })
+    }
+
+    // BUG 3 FIX: Ownership check — if order belongs to a user, verify it's the authenticated user
+    if (order.userId && order.userId !== session.userId) {
+      return NextResponse.json(
+        { error: 'Accès non autorisé à cette commande' },
+        { status: 403 }
+      )
     }
 
     // Parse order items
