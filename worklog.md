@@ -2371,3 +2371,70 @@ c. **E2E Flow Tests (3):**
 - `npm run lint` — 0 errors, 0 warnings
 - Dev server compiles: `GET /qa 200` in 1073ms (compile: 772ms)
 - QA page accessible at `/qa` route
+
+---
+## Task ID: EMERGENCY-FIX - emergency-fix
+### Work Task
+Emergency fix after repository reinitialization: recreate missing HomeClient component, convert homepage from client-side fetching to Server Component architecture, verify productSlug propagation across cart system.
+
+### Work Summary
+
+**Assessment:**
+- Read worklog.md (2373 lines) to understand full project history and current state
+- Confirmed `src/app/page.tsx` was the OLD `'use client'` version with `useEffect`-based data fetching
+- Confirmed `src/components/home/` directory did NOT exist
+- Confirmed all product components, motion components, stores, and existing pages were intact
+
+**Step 1: Verified existing files:**
+- `src/components/motion/FadeIn.tsx` — EXISTS (exports FadeIn, StaggerContainer, StaggerItem)
+- `src/components/product/ProductCard.tsx` — EXISTS, already passes `productSlug` in `addItem`
+- `src/components/product/ProductCardSkeleton.tsx` — EXISTS
+- `src/components/product/FlashSaleBanner.tsx` — EXISTS
+- `src/components/product/ReferralSection.tsx` — EXISTS
+- `src/components/product/BundleDeals.tsx` — EXISTS, already passes `productSlug` in `addItem`
+- `src/components/product/SocialProof.tsx` — EXISTS
+- `src/components/product/FloatingWhatsApp.tsx` — EXISTS
+- `src/components/product/QuickView.tsx` — EXISTS, already passes `productSlug` in `addItem`
+- `src/components/NewsletterSection.tsx` — EXISTS
+- `src/store/cart-store.ts` — Already has `productSlug?: string` in CartItem interface ✓
+- `src/app/panier/page.tsx` — Already uses `item.productSlug || item.productId` for links ✓
+- `src/app/produit/[slug]/page.tsx` — Already passes `productSlug` in `addItem` ✓
+- All store files intact: auth-store, cart-store, product-store, comparison-store, quick-view-store, recently-viewed-store, stock-notification-store
+
+**Step 2: Created `src/components/home/HomeClient.tsx`:**
+- New `'use client'` component receiving props: `categories`, `featuredProducts`, `bestSellers`, `newArrivals`, `allProducts`, `allHasMore`
+- Includes all homepage sections: Hero, Categories, Featured, Best Sellers, New Arrivals, Bundle Deals, All Products, Newsletter, Referral, Flash Sale, Social Proof, Floating WhatsApp
+- Client-side interactivity: search form navigation, load-more pagination for all products
+- Uses `useProductStore` for `selectedCurrency`, all existing UI components (FadeIn, StaggerContainer, StaggerItem, ProductCard, etc.)
+- Category icons mapping (audio→Headphones, telephones→Smartphone, etc.)
+
+**Step 3: Converted `src/app/page.tsx` to Server Component:**
+- Removed `'use client'` directive, `useState`, `useEffect`, all client-side hooks
+- Added `export const dynamic = 'force-dynamic'`
+- Imports `db` from `@/lib/db` for direct Prisma queries
+- Fetches 5 data sets in parallel via `Promise.all`:
+  1. Categories with product count (`_count`)
+  2. Featured products (isFeatured=true, take 6)
+  3. Best sellers (orderBy salesCount desc, take 6)
+  4. New arrivals (orderBy createdAt desc, take 6)
+  5. All products first page (take 8) + total count for pagination
+- Transforms Prisma results to match client component TypeScript interfaces (serializes dates via `.toISOString()`)
+- Passes all data to `HomeClient` component
+
+**Step 4: Verified cart-store.ts** — `productSlug?: string` already present. No changes needed.
+
+**Step 5: Verified productSlug propagation** — All 4 files already pass `productSlug`:
+- `ProductCard.tsx` — `productSlug: product.slug` ✓
+- `produit/[slug]/page.tsx` — `productSlug: product.slug` ✓
+- `QuickView.tsx` — `productSlug: product.slug` ✓
+- `BundleDeals.tsx` — `productSlug: product.slug` ✓
+- `panier/page.tsx` — `item.productSlug || item.productId` ✓
+
+**Step 6: Lint verification** — `npm run lint`: **0 errors**
+**Dev server verification** — `GET / 200 in 79-83ms`, `✓ Compiled in 183ms`
+
+**Files Created:**
+- `src/components/home/HomeClient.tsx`
+
+**Files Modified:**
+- `src/app/page.tsx` — Complete rewrite from 'use client' to Server Component
