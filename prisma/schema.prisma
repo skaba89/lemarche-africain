@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  order       Int      @default(0)
+  products    Product[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  brand           String
+  description     String
+  features        String   // JSON string of features array
+  specifications  String   // JSON string of specs array
+  images          String   // JSON string of image URLs array
+  priceGNF        Int      // Base price in GNF
+  originalPriceGNF Int?
+  currency        String   @default("GNF")
+  rating          Float    @default(0)
+  ratingCount     Int      @default(0)
+  salesCount      Int      @default(0)
+  stock           Int      @default(0)
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  isOfficial      Boolean  @default(false)
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id])
+  seller          String?
+  sellerVerified  Boolean  @default(false)
+  colors          String   // JSON string of color options
+  sizes           String?  // JSON string of size options
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String?
+  name          String?
+  phone         String?
+  city          String?
+  address       String?
+  role          String   @default("customer")
+  pointsBalance Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orders        Order[]
+  loyaltyPoints LoyaltyPoints[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  items         String   // JSON string of order items
+  subtotalGNF   Int
+  deliveryFeeGNF Int     @default(0)
+  totalGNF      Int
+  status        String   @default("pending") // pending, confirmed, preparing, shipping, delivered, cancelled
+  paymentMethod String   // orange_money, mtn_momo, wave, cash, carte
+  deliveryType  String   @default("pickup") // pickup, domicile
+  fullName      String
+  phone         String
+  city          String
+  address       String?
+  country       String   @default("GN")
+  currency      String   @default("GNF")
+  notes         String?
+  couponDiscount Int?
+  couponLabel   String?
+  couponCode    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  author    String
+  rating    Int
+  title     String
+  body      String
+  verified  Boolean  @default(false)
+  location  String?
+  createdAt DateTime @default(now())
+  @@index([productId])
+}
+
+model Coupon {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  label           String
+  discountType    String   @default("fixed") // fixed, percentage
+  discountValue   Int      // GNF amount or percentage
+  minOrderGNF     Int      @default(0)
+  maxUses         Int      @default(100)
+  usedCount       Int      @default(0)
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+}
+
+model LoyaltyPoints {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points      Int
+  source      String   // "purchase", "review", "referral", "signup"
+  description String
+  orderId     String?
+  createdAt   DateTime @default(now())
+  @@index([userId])
+}
