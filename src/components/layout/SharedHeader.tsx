@@ -174,13 +174,13 @@ export default function SharedHeader() {
             <span className="text-[10px] text-[#B9F6CA]">Livrer &agrave;</span>
             <span className="flex items-center gap-0.5 font-medium"><MapPin className="h-3.5 w-3.5" />{selectedCountry.capital}</span>
           </button>
-          <Link href="/panier" className="relative flex items-center gap-1 text-white hover:text-[#B9F6CA] transition-colors">
+          <button onClick={() => useCartStore.getState().openCart()} className="relative flex items-center gap-1 text-white hover:text-[#B9F6CA] transition-colors">
             <ShoppingCart className="h-6 w-6" />
             <span className="font-medium text-sm">Panier</span>
             {cartItemCount > 0 && (
               <span className="absolute -right-2 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF8F00] text-xs font-bold text-white">{cartItemCount}</span>
             )}
-          </Link>
+          </button>
         </nav>
 
         {/* Mobile menu */}
@@ -201,7 +201,7 @@ export default function SharedHeader() {
           <Link href="/compte" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2.5 text-sm text-white">
             <User className="h-4 w-4" /> {isAuthenticated && authUser?.name ? authUser.name : 'Mon Compte'}
           </Link>
-          <Link href="/panier" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2.5 text-sm text-white"><ShoppingCart className="h-4 w-4" /> Panier ({cartItemCount})</Link>
+          <button onClick={() => { setMobileMenuOpen(false); useCartStore.getState().openCart(); }} className="flex items-center gap-2 py-2.5 text-sm text-white"><ShoppingCart className="h-4 w-4" /> Panier ({cartItemCount})</button>
           <Link href="/aide" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2.5 text-sm text-white"><MessageCircle className="h-4 w-4" /> Centre d&apos;Aide</Link>
           <Link href="/compte#commandes" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 py-2.5 text-sm text-white"><Check className="h-4 w-4" /> Mes Commandes</Link>
           <a href="https://wa.me/224628000000" target="_blank" rel="noopener" className="flex items-center gap-2 py-2.5 text-sm text-white"><Phone className="h-4 w-4" /> +224 628 00 00 00</a>

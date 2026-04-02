@@ -11,6 +11,7 @@ import ComparisonDrawer from '@/components/product/ComparisonDrawer';
 import QuickView from '@/components/product/QuickView';
 import ChatWidget from '@/components/chat/ChatWidget';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
+import CartDrawer from '@/components/cart/CartDrawer';
 import { useQuickViewStore } from '@/store/quick-view-store';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <ChatWidget />
       <QuickView isOpen={quickView.isOpen} onClose={quickView.close} productSlug={quickView.slug || ''} />
       <MobileBottomNav />
+      <CartDrawer />
     </>
   );
 }

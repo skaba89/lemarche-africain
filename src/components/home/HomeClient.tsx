@@ -29,6 +29,8 @@ import BundleDeals from '@/components/product/BundleDeals';
 import { SocialProofNotification } from '@/components/product/SocialProof';
 import { FloatingWhatsApp } from '@/components/product/FloatingWhatsApp';
 import ProductCard from '@/components/product/ProductCard';
+import PromoCarousel from '@/components/home/PromoCarousel';
+import TrustIndicators from '@/components/home/TrustIndicators';
 import { useProductStore } from '@/store/product-store';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/components/motion/FadeIn';
 
@@ -203,6 +205,13 @@ export default function HomeClient({
         </div>
         </FadeIn>
 
+        {/* Promo Carousel */}
+        <FadeIn delay={0.07}>
+        <div className="mb-2">
+          <PromoCarousel />
+        </div>
+        </FadeIn>
+
         {/* Categories Grid */}
         {categories.length > 0 && (
           <FadeIn delay={0.1}>
@@ -240,6 +249,11 @@ export default function HomeClient({
           </section>
           </FadeIn>
         )}
+
+        {/* Trust Indicators */}
+        <FadeIn delay={0.12}>
+          <TrustIndicators />
+        </FadeIn>
 
         {/* Featured Products */}
         {featuredProducts.length > 0 && (

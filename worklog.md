@@ -2558,3 +2558,174 @@ Verify all 5 previously reported bugs are fixed, check project state after conte
 - All API routes functioning: products, search, categories, orders, coupons, auth
 - Database contains: 64 products, 9 categories, 80+ images, reviews, orders
 
+
+---
+## Task ID: 14-b + 14-c - promo-carousel-trust-indicators
+### Work Task
+Create a Promotional Hero Carousel component, a Trust Indicators section, and integrate both into the HomeClient component on the homepage.
+
+### Work Summary
+
+**Task 1: PromoCarousel.tsx** (`src/components/home/PromoCarousel.tsx`)
+- Created 'use client' component with 4 promotional slides:
+  - "Livraison Gratuite" — green gradient (#1B5E20 → #2E7D32) — Truck icon
+  - "-50% sur votre 1ère commande" — orange gradient (#FF8F00 → #F57C00) — Tag icon
+  - "Paiement Mobile Sécurisé" — blue gradient (#0D47A1 → #1565C0) — ShieldCheck icon
+  - "Service Client 24/7" — purple gradient (#4A148C → #7B1FA2) — Headphones icon
+- Auto-advances every 5 seconds, pauses on hover
+- Smooth CSS transitions (opacity + translateX) with 700ms duration
+- Dot indicators at bottom with active state (wider pill shape)
+- Responsive: h-[140px] md:h-[180px], icon hidden on mobile, text centered
+- Rounded-2xl overflow-hidden with shadow, white text, accessible ARIA labels
+
+**Task 2: TrustIndicators.tsx** (`src/components/home/TrustIndicators.tsx`)
+- Created 'use client' component with 4 stat cards in a grid:
+  - "Produits Authenticques" — 100% — ShieldCheck — green
+  - "Clients Satisfaits" — 15K+ — Users — orange
+  - "Commandes Livrées" — 50K+ — Package — blue
+  - "Pays d'Afrique" — 28 — Globe2 — purple
+- Each card has a colored icon circle with bg-{color}/10 dark:bg-{color}-900/30
+- Fade-in animation on mount (300ms delay, opacity + translateY transition)
+- Grid: grid-cols-2 md:grid-cols-4, light gray background with rounded-2xl
+- Dark mode support with appropriate dark variant classes
+- Values displayed directly (no counter animation needed per requirements)
+
+**Task 3: HomeClient.tsx Integration** (`src/components/home/HomeClient.tsx`)
+- Added imports for PromoCarousel and TrustIndicators
+- PromoCarousel placed between FlashSaleBanner and Categories Grid (inside FadeIn delay=0.07)
+- TrustIndicators placed between Categories Grid and Featured Products (inside FadeIn delay=0.12)
+
+**Verification:**
+- `npm run lint` — 0 errors, 0 new warnings
+- Dev server compiles with no errors
+---
+## Task ID: 14-d - footer-enhancement
+### Work Task
+Enhance SharedFooter with comprehensive content: app download banner, 4-column grid (brand, shop categories, help, contact), social media icons, and bottom bar with payment methods and copyright.
+
+### Work Summary
+
+**File Modified:** `src/components/layout/SharedFooter.tsx` — Complete rewrite
+
+**1. Verified icon availability** in lucide-react:
+- Confirmed: Facebook, Instagram, Twitter, Smartphone, ShieldCheck, Store, ChevronRight all available
+
+**2. Top Section — App Download Banner:**
+- Green gradient background (`from-[#1B5E20] to-[#2E7D32]`)
+- Smartphone icon in rounded glass-morphism container
+- Title: "Téléchargez notre application" with subtitle
+- Two store buttons with inline SVG icons (Google Play, App Store)
+- Responsive layout: stacked on mobile, horizontal on desktop
+
+**3. Main Footer Grid (4 columns):**
+- **Column 1 — "Le Marché Africain"**: Logo link, 2-3 line marketplace description, social media icon row (Facebook, Instagram, Twitter) with circular `bg-white/10` buttons and `hover:bg-white/20` effect
+- **Column 2 — "Boutique"**: 6 category links (Audio, Téléphones, Informatique, Maison, Accessoires, Sport) linking to `/recherche?category={slug}` with ChevronRight icons
+- **Column 3 — "Aide"**: 6 links — FAQ (/aide), Mon Compte (/compte), Suivi de commande (/compte#commandes), Politique de retour (#), Conditions d'utilisation (#), Newsletter (smooth scroll to #newsletter-section)
+- **Column 4 — "Contact"**: Phone (+224 628 00 00 00), Email (contact@lemarche.africa), WhatsApp link, Address (Conakry, Guinée) — uses BUSINESS constants from `src/lib/constants.ts`
+- Responsive: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`
+
+**4. Bottom Bar:**
+- Copyright: "© 2024 Le Marché Africain. Tous droits réservés."
+- Vertical separator line on desktop
+- Payment methods: Orange Money (orange dot), MTN MoMo (yellow dot), Wave (blue dot), Cash (Banknote icon)
+- Trust badge: ShieldCheck icon + "Paiements sécurisés" (hidden on small screens, visible on lg+)
+- Mobile padding: `pb-20 lg:pb-5` for MobileBottomNav clearance
+
+**5. Style Requirements Met:**
+- Background: `bg-gray-900 dark:bg-gray-950` with white/light text
+- Social icons: circular buttons with `hover:bg-white/20` effect
+- Category links: proper `/recherche?category=` URLs
+- RecentlyViewed section preserved at top
+- All existing functionality maintained
+
+**6. Imports:** Uses `BUSINESS` from `@/lib/constants` for contact info consistency
+
+**Verification:**
+- `npm run lint` — 0 errors, 0 warnings
+- Dev server compiles with no errors (Compiled in 285ms)
+---
+## Task ID: 14-a - cart-drawer
+### Work Task
+Create a slide-in Cart Drawer component using shadcn/ui Sheet, integrate into ClientLayout, and wire header cart icon to open the drawer.
+
+### Work Summary
+
+**1. Created `src/components/cart/CartDrawer.tsx`** — Full slide-in cart drawer:
+- Uses shadcn/ui `Sheet` with `side="right"` and `sm:max-w-md` (wider than default)
+- Syncs `open`/`onOpenChange` with `useCartStore`'s `isOpen`/`closeCart()` state
+- Reads `selectedCurrency` from `useProductStore` for price formatting
+- **Green header bar** (#1B5E20): ShoppingCart icon, "Mon Panier" title, item count badge (orange #FF8F00), custom X close button
+- Hides the Sheet's built-in close button via `[&>button.absolute]:hidden` Tailwind selector
+- **Scrollable cart items**: `overflow-y-auto` with `divide-y` separators, each item shows:
+  - 56x56 rounded product image (with fallback ShoppingBag icon)
+  - Product name (line-clamp-1) + variant info (color/size)
+  - Quantity controls (Minus/Plus buttons, disabled at min=1 or max=stock)
+  - Unit price + Trash2 remove button with toast feedback
+- **Sticky bottom section**: subtotal with item count, savings (if any, in emerald green), Separator, two CTA buttons:
+  - "Voir le panier complet" (outline, green border) → `/panier`
+  - "Commander" (solid green) → `/commande`
+- **Empty state**: ShoppingBag icon in circle, "Votre panier est vide" message, "Découvrir nos produits" button → `/`
+- Full dark mode support throughout (dark:bg-gray-900, dark:bg-gray-800, dark:border-gray-700, etc.)
+- All text in French, uses `formatPrice` with `selectedCurrency`
+
+**2. Updated `src/components/layout/ClientLayout.tsx`**:
+- Added `import CartDrawer from '@/components/cart/CartDrawer'`
+- Added `<CartDrawer />` before closing `</>` (after MobileBottomNav)
+
+**3. Updated `src/components/layout/SharedHeader.tsx`**:
+- **Desktop**: Changed cart `<Link href="/panier">` to `<button onClick={() => useCartStore.getState().openCart()}>` — clicking the cart icon now opens the drawer instead of navigating
+- **Mobile**: Changed cart `<Link>` to `<button>` that closes mobile menu and opens cart drawer
+
+**Verification**:
+- `bun run lint` — 0 errors
+- Dev server compiles successfully (✓ Compiled in 221ms)
+- No runtime errors in dev log
+
+---
+## Task ID: 14 - homepage-enhancements-cart-drawer-footer
+### Work Task
+Add 4 high-impact UX improvements: (1) Slide-in Cart Drawer, (2) Promotional Hero Carousel, (3) Trust Indicators Section, (4) Enhanced Footer.
+
+### Work Summary
+
+**1. Cart Drawer (`src/components/cart/CartDrawer.tsx`)**:
+- Slide-in drawer using shadcn/ui Sheet (side="right", sm:max-w-md)
+- Syncs with useCartStore's isOpen/closeCart via Sheet's open/onOpenChange
+- Green header bar (#1B5E20) with ShoppingCart icon, "Mon Panier", item count, X close button
+- Scrollable cart items list: 56x56 image, name (line-clamp-1), variant, quantity controls (+/-), price, Trash2 remove
+- Sticky bottom with subtotal, savings, and two CTAs: "Voir le panier complet" → /panier, "Commander" → /commande
+- Empty state: ShoppingBag icon, "Votre panier est vide" message, "Découvrir nos produits" button
+- Full dark mode support
+
+**2. Cart Drawer Integration**:
+- `src/components/layout/ClientLayout.tsx`: Added <CartDrawer /> component
+- `src/components/layout/SharedHeader.tsx`: Changed cart icons from Link to button that opens drawer via useCartStore.getState().openCart()
+
+**3. Promo Carousel (`src/components/home/PromoCarousel.tsx`)**:
+- 4 auto-advancing slides (5s interval, pauses on hover):
+  - "Livraison Gratuite" (green gradient, Truck icon)
+  - "-50% sur votre 1ère commande" (orange gradient, Tag icon)
+  - "Paiement Mobile Sécurisé" (blue gradient, ShieldCheck icon)
+  - "Service Client 24/7" (purple gradient, Headphones icon)
+- Smooth CSS transitions (opacity + translateX), dot indicators
+- Responsive: h-[140px] md:h-[180px], icon hidden on mobile
+
+**4. Trust Indicators (`src/components/home/TrustIndicators.tsx`)**:
+- 4 stat cards: 100% Authentic, 15K+ Clients, 50K+ Commandes, 28 Pays
+- Grid layout (2-col mobile, 4-col desktop) with colored icon circles
+- Fade-in animation, dark mode support
+
+**5. HomeClient Integration**:
+- PromoCarousel placed between FlashSaleBanner and Categories Grid
+- TrustIndicators placed between Categories Grid and Featured Products
+
+**6. Enhanced Footer (`src/components/layout/SharedFooter.tsx`)**:
+- App download banner (green gradient) at top
+- 4-column grid: Brand + social, Boutique categories, Aide links, Contact info
+- Bottom bar: copyright, payment methods (Orange Money, MTN MoMo, Wave, Cash)
+- Mobile padding for MobileBottomNav clearance
+
+**Verification:**
+- `bun run lint` — 0 errors
+- Dev server compiles successfully (GET / 200 in ~137ms)
+
