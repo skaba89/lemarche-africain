@@ -1,5 +1,7 @@
 [
   "qa_test@example.com",
   "qa-test@test.com",
-  "test@example.com"
+  "test@example.com",
+  "testqa@bugtest.com",
+  "finaltest@test.com"
 ]

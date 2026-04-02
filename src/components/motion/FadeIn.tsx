@@ -14,19 +14,18 @@ export function FadeIn({
   direction?: 'up' | 'down' | 'left' | 'right' | 'none';
 }) {
   const directionMap = {
-    up: { y: 20 },
-    down: { y: -20 },
-    left: { x: 20 },
-    right: { x: -20 },
+    up: { y: 12 },
+    down: { y: -12 },
+    left: { x: 12 },
+    right: { x: -12 },
     none: {},
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, ...directionMap[direction] }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once: true, margin: '-30px' }}
-      transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+      initial={{ opacity: 0.6, ...directionMap[direction] }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: 'easeOut' }}
       className={className}
     >
       {children}
@@ -44,11 +43,10 @@ export function StaggerContainer({
   return (
     <motion.div
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-50px' }}
+      animate="visible"
       variants={{
         hidden: {},
-        visible: { transition: { staggerChildren: 0.08 } },
+        visible: { transition: { staggerChildren: 0.05 } },
       }}
       className={className}
     >
@@ -67,8 +65,8 @@ export function StaggerItem({
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+        hidden: { opacity: 0.4, y: 8 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
       }}
       className={className}
     >

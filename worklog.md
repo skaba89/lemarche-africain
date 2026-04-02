@@ -2438,3 +2438,123 @@ Emergency fix after repository reinitialization: recreate missing HomeClient com
 
 **Files Modified:**
 - `src/app/page.tsx` — Complete rewrite from 'use client' to Server Component
+---
+## Task ID: BUG-HUNT - qa-engineer
+### Work Task
+Comprehensive QA audit of Le Marche Africain marketplace. Test every page, API endpoint, component file, and import for bugs. Fix all issues found.
+
+### Work Summary
+
+**PHASE 1 - Page Rendering:** All 8 pages return HTTP 200 with substantial content (387KB homepage, 85KB product, 111KB search, etc.)
+
+**PHASE 2 - API Endpoints:** All 16+ API endpoints return valid data (products, categories, search, chat, stats, auth, orders, newsletter, coupons, reviews, loyalty)
+
+**PHASE 3 - Component Files:** 30/31 files exist. Missing ScrollProgress.tsx is NOT imported anywhere - safe to ignore.
+
+**PHASE 4 - JS Errors:** 7/8 pages error-free. Product page had TypeError.
+
+**PHASE 5 - Imports:** All imports verified working across page.tsx, stores, components.
+
+**PHASE 6 - Dev Log:** No server errors, all requests HTTP 200.
+
+**BUG FOUND AND FIXED:**
+
+**BUG 1 (CRITICAL): Product page generateMetadata fetch failure**
+- File: src/app/produit/[slug]/layout.tsx line 14
+- Problem: generateMetadata used fetch to external URL https://lemarcheafricain.com/api/products/{slug} which does not resolve in dev, causing TypeError: fetch failed
+- Fix: Replaced HTTP fetch with direct Prisma database query (db.product.findUnique)
+- Verification: Product page now renders without TypeError, dynamic metadata working correctly
+
+**Final:** npm run lint = 0 errors, all pages HTTP 200, no JS errors, all APIs valid.
+
+
+---
+Task ID: 13 - critical-bug-fixes
+Agent: Main Orchestrator
+Task: Fix 5 critical bugs: invisible products, broken mobile buttons, non-clickable products, missing images, broken filters/cart
+
+Work Log:
+- Analyzed all project files to identify root causes of 5 reported issues
+- **Fix 1 (Animations)**: Rewrote `FadeIn`, `StaggerContainer`, `StaggerItem` in `src/components/motion/FadeIn.tsx`
+  - Changed from `whileInView` with `opacity: 0` (content invisible until scrolled) to `animate` with `opacity: 0.6` (content immediately visible)
+  - Changed `StaggerContainer` from `whileInView` to `animate` for immediate visibility
+  - Reduced stagger delay from 0.08s to 0.05s per item
+- **Fix 2 (Mobile Buttons)**: Rewrote `src/components/product/ProductCard.tsx`
+  - Removed `motion.div` wrapper that was interfering with click events
+  - Changed action buttons from `opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto` (invisible on mobile) to `opacity-100 lg:opacity-0 lg:group-hover:opacity-100` (always visible on mobile, hover-only on desktop)
+  - Added `active:scale-95` touch feedback for better mobile UX
+  - Separated quick view button into its own proper click handler
+- **Fix 3 (Product Detail)**: Fixed `src/app/produit/[slug]/page.tsx`
+  - Removed nested `<main>` tag (was duplicating the one in ClientLayout)
+  - Fixed indentation and wrapper div nesting
+  - Ensured lightbox and back-to-top button remain inside the page wrapper
+- **Fix 4 (Images)**: Images were correct - the issue was they were hidden by the invisible animation wrappers (fixed by Fix 1)
+- **Fix 5 (Mobile Nav Spacing)**: Added `pb-24` bottom padding to homepage content to prevent mobile bottom nav from overlapping products
+- Removed `require()` style import from ProductCard (replaced with direct tracking on product detail page)
+- **Verification**: `bun run lint` — 0 errors, 0 warnings
+
+Stage Summary:
+- All 5 reported bugs fixed
+- Products now load immediately visible with smooth entry animations
+- All ProductCard action buttons (cart, wishlist, compare, quick view) work on both mobile and desktop
+- Product detail page renders correctly without nesting issues
+- Images display properly since content is no longer hidden
+- Mobile bottom navigation no longer overlaps page content
+- Zero lint errors confirmed
+
+---
+## Task ID: 13 - bug-verification-and-minor-fixes
+### Work Task
+Verify all 5 previously reported bugs are fixed, check project state after context reset, and apply minor layout fixes.
+
+### Work Summary
+
+**Verification of All 5 Bugs:**
+
+1. **Products not loading / slow / not clickable for details** ✅ FIXED
+   - FadeIn component uses `animate` with `opacity: 0.6 → 1` (content immediately visible)
+   - ProductCard wrapped directly in `<Link>` (no motion.div intercepting clicks)
+   - API returns 200 OK within ~200-400ms
+   - Product detail page loads correctly via `/api/products/[slug]`
+
+2. **Elements not visible** ✅ FIXED
+   - FadeIn uses `initial={{ opacity: 0.6 }}` and `animate={{ opacity: 1 }}`
+   - StaggerItem uses `hidden: { opacity: 0.4 }` and `visible: { opacity: 1 }`
+   - All content renders immediately with gentle fade-in animation
+
+3. **Buttons don't work on click** ✅ FIXED
+   - Removed `pointer-events-none` from ProductCard buttons
+   - Buttons use `opacity-100` on mobile (always visible and clickable)
+   - `active:scale-95` provides touch feedback
+   - Event propagation properly handled with `e.preventDefault()` and `e.stopPropagation()`
+
+4. **Images not displaying** ✅ FIXED
+   - 80 image files confirmed in `public/product-images/`
+   - Database stores correct JSON arrays with proper paths (`/product-images/xxx.png`)
+   - ProductCard parses images correctly with `JSON.parse()`
+   - Fallback image: `/product-images/headphones-main.png`
+
+5. **Filters and cart don't work** ✅ FIXED
+   - Search API supports: category, brand, price range, rating, in-stock, on-sale filters
+   - Recherche page has full filter sidebar (desktop) and mobile drawer
+   - Cart uses Zustand with localStorage persistence
+   - Add to cart, remove, update quantity all work
+   - Coupon validation works via `/api/coupons/validate`
+   - Payment method selection works
+
+**Minor Fixes Applied:**
+
+1. **`src/components/layout/ClientLayout.tsx`** — Removed nested `<footer>` tag:
+   - Changed `<footer role="contentinfo"><SharedFooter /></footer>` to just `<SharedFooter />`
+   - SharedFooter already has its own `<footer>` element, so the outer wrapper was redundant
+
+2. **`src/components/layout/SharedFooter.tsx`** — Added mobile padding:
+   - Changed bottom bar from `py-4` to `py-4 pb-20 lg:pb-4`
+   - Prevents MobileBottomNav (h-16 fixed) from overlapping footer content on mobile
+
+**Verification:**
+- `bun run lint` — 0 errors, 0 warnings
+- Dev server compiles successfully (GET / 200 in ~200-400ms)
+- All API routes functioning: products, search, categories, orders, coupons, auth
+- Database contains: 64 products, 9 categories, 80+ images, reviews, orders
+

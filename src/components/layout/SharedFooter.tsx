@@ -72,7 +72,7 @@ export default function SharedFooter() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-[#DDD] dark:border-gray-700 bg-[#1B5E20] px-4 py-4">
+      <div className="border-t border-[#DDD] dark:border-gray-700 bg-[#1B5E20] px-4 py-4 pb-20 lg:pb-4">
         <div className="mx-auto max-w-[1500px] flex flex-col items-center gap-2 md:flex-row md:justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Store className="h-5 w-5 text-white" />

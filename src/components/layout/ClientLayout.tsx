@@ -29,9 +29,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <>
       <SharedHeader />
       <main id="main-content" role="main" className="min-h-screen flex flex-col">{children}</main>
-      <footer role="contentinfo">
-        <SharedFooter />
-      </footer>
+      <SharedFooter />
       <ComparisonBar onCompare={handleOpenComparison} />
       <CookieConsent />
       <ComparisonDrawer isOpen={isComparisonOpen} onClose={handleCloseComparison} />

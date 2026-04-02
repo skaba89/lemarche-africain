@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { Star, Heart, ShoppingCart, Truck, ShieldCheck, ArrowUpDown, Eye } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useProductStore, formatPrice } from '@/store/product-store';
 import { useCartStore } from '@/store/cart-store';
 import { useComparisonStore } from '@/store/comparison-store';
@@ -113,12 +112,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const addToCartQuick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    let colors: { id: string; label: string }[] = [];
-    let sizes: { id: string; label: string }[] = [];
-    try {
-      colors = [{ id: 'default', label: 'Standard' }];
-      sizes = [{ id: 'default', label: 'Standard' }];
-    } catch { /* ignore */ }
 
     useCartStore.getState().addItem({
       productId: product.id,
@@ -167,16 +160,17 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
+  const openQuickView = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    useQuickViewStore.getState().open(product.slug);
+  };
+
   return (
-    <motion.div
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.4 }}
-      className="h-full"
+    <Link
+      href={`/produit/${product.slug}`}
+      className="group h-full block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
     >
-    <Link href={`/produit/${product.slug}`} className="group h-full block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300">
       {/* Image container */}
       <div className="relative aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
         <img
@@ -209,42 +203,48 @@ export default function ProductCard({ product }: ProductCardProps) {
             </Badge>
           ))}
         </div>
-        {/* Quick View button (center) */}
-        <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); useQuickViewStore.getState().open(product.slug); }}
-          aria-label="Apercu rapide"
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 pointer-events-none group-hover:pointer-events-auto"
-        >
-          <Eye className="h-3.5 w-3.5" /> Aper&ccedil;u rapide
-        </button>
-        {/* Quick add to cart (left) */}
-        <button
-          onClick={addToCartQuick}
-          aria-label="Ajouter au panier"
-          className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-[#1B5E20]/90 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1B5E20]"
-        >
-          <ShoppingCart className="h-4 w-4 text-white" />
-        </button>
-        {/* Compare button (left-center) */}
-        <button
-          onClick={toggleCompare}
-          aria-label={isInComparison ? "Retirer de la comparaison" : "Ajouter \u00e0 la comparaison"}
-          className={`absolute bottom-2 left-[44px] w-8 h-8 rounded-full shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
-            isInComparison
-              ? 'bg-[#1B5E20]/90 text-white'
-              : 'bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-700'
-          }`}
-        >
-          <ArrowUpDown className={`h-4 w-4 ${isInComparison ? 'text-white' : 'text-gray-600'}`} />
-        </button>
-        {/* Heart button (right) */}
-        <button
-          onClick={toggleWishlist}
-          aria-label={isWishlisted ? "Retirer des favoris" : "Ajouter aux favoris"}
-          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white dark:hover:bg-gray-700"
-        >
-          <Heart className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-[#CC0C39]'}`} />
-        </button>
+        {/* Action buttons overlay */}
+        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+          {/* Quick add to cart (left) */}
+          <button
+            onClick={addToCartQuick}
+            aria-label="Ajouter au panier"
+            className="w-8 h-8 rounded-full bg-[#1B5E20]/90 shadow-sm flex items-center justify-center hover:bg-[#1B5E20] transition-colors active:scale-95"
+          >
+            <ShoppingCart className="h-4 w-4 text-white" />
+          </button>
+
+          {/* Quick view (center) */}
+          <button
+            onClick={openQuickView}
+            aria-label="Aper\u00e7u rapide"
+            className="bg-black/60 text-white backdrop-blur-sm rounded-full px-2.5 py-1.5 flex items-center gap-1 text-[10px] font-medium hover:bg-black/70 transition-colors active:scale-95"
+          >
+            <Eye className="h-3.5 w-3.5" /> Aper&ccedil;u
+          </button>
+
+          {/* Compare button (center-right) */}
+          <button
+            onClick={toggleCompare}
+            aria-label={isInComparison ? 'Retirer de la comparaison' : 'Ajouter \u00e0 la comparaison'}
+            className={`w-8 h-8 rounded-full shadow-sm flex items-center justify-center transition-colors active:scale-95 ${
+              isInComparison
+                ? 'bg-[#1B5E20]/90 text-white'
+                : 'bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-700'
+            }`}
+          >
+            <ArrowUpDown className={`h-4 w-4 ${isInComparison ? 'text-white' : 'text-gray-600'}`} />
+          </button>
+
+          {/* Heart button (right) */}
+          <button
+            onClick={toggleWishlist}
+            aria-label={isWishlisted ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            className="w-8 h-8 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-700 transition-colors active:scale-95"
+          >
+            <Heart className={`h-4 w-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-[#CC0C39]'}`} />
+          </button>
+        </div>
       </div>
 
       {/* Info */}
@@ -298,6 +298,5 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
     </Link>
-    </motion.div>
   );
 }

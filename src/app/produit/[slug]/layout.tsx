@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { db } from '@/lib/db';
 
 interface ProductLayoutProps {
   children: React.ReactNode;
@@ -10,26 +11,20 @@ export async function generateMetadata({
 }: ProductLayoutProps): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://lemarcheafricain.com';
-    const res = await fetch(`${baseUrl}/api/products/${slug}`, {
-      cache: 'no-store',
+
+    const product = await db.product.findUnique({
+      where: { slug, isActive: true },
+      include: { category: true },
     });
 
-    if (!res.ok) {
-      throw new Error('Product not found');
-    }
-
-    const data = await res.json();
-    const product = data.product;
-
     if (!product) {
-      throw new Error('No product data');
+      throw new Error('Product not found');
     }
 
     // Parse first image for OG
     let mainImage = '';
     try {
-      const images = JSON.parse(product.images);
+      const images = JSON.parse(product.images as string);
       if (Array.isArray(images) && images.length > 0) {
         mainImage = typeof images[0] === 'string' ? images[0] : images[0]?.src || '';
       }

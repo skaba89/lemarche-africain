@@ -194,7 +194,7 @@ export default function HomeClient({
       </section>
       </FadeIn>
 
-      <div className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 space-y-8">
+      <div className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-6 pb-24 space-y-8">
 
         {/* Flash Sale Banner */}
         <FadeIn delay={0.05}>

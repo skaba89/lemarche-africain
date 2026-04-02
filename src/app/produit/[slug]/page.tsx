@@ -499,7 +499,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         </div>
       </nav>
 
-      <main className="mx-auto max-w-[1500px] px-4 py-6">
+      <div className="mx-auto max-w-[1500px] px-4 py-6">
         {/* Product Layout */}
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Left: Images (40%) */}
@@ -934,8 +934,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           </div>
         </div>
 
-        {/* Tabs: Description, Specs, Reviews */}
-        <section className="mt-8">
+      </div>
+
+      {/* Tabs: Description, Specs, Reviews */}
+      <section className="mt-8">
           <Tabs defaultValue="description">
             <TabsList className="w-full justify-start border-b dark:border-gray-700 rounded-none bg-transparent h-auto p-0">
               <TabsTrigger value="description" className="rounded-none border-b-2 border-transparent dark:border-gray-700 data-[state=active]:border-[#1B5E20] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-100">
@@ -1057,26 +1059,25 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           </Tabs>
         </section>
 
-        {/* Recently Viewed Products */}
-        <section className="mt-10">
-          <RecentlyViewed />
-        </section>
+      {/* Recently Viewed Products */}
+      <section className="mt-10">
+        <RecentlyViewed />
+      </section>
 
-        {/* Related Products */}
-        {related.length > 0 && (
-          <section className="mt-10">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-              Produits similaires
-              <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-600" />
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {related.map((p) => (
+      {/* Related Products */}
+      {related.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            Produits similaires
+            <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-600" />
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {related.map((p) => (
                 <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Image Lightbox Overlay */}
       {showLightbox && images.length > 0 && (
