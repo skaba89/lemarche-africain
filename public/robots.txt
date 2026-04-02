@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /compte
+Disallow: /commande
+Disallow: /panier
+
+# Sitemaps
+Sitemap: https://lemarcheafricain.gn/sitemap.xml
+
+# Crawl-delay (respect server resources)
+Crawl-delay: 1

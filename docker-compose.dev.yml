@@ -1,0 +1,25 @@
+# ============================================================
+# Le Marché Africain — Docker Compose DEV
+# Usage: docker compose -f docker-compose.dev.yml up
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:/app/db/custom.db
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./prisma:/app/prisma
+      - app-data:/app/db
+    command: >
+      sh -c "bunx prisma db push --skip-generate && bun run dev"
+
+volumes:
+  app-data:

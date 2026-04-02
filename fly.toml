@@ -1,0 +1,53 @@
+# ============================================================
+# Le Marché Africain — Fly.io Configuration
+# Plan gratuit : 3 shared-cpu-1x VM, 256MB RAM
+# ============================================================
+
+app = "lemarche-africain"
+primary_region = "cdg"   # Paris (le plus proche de la Guinée)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+
+# Health check
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.http_checks]]
+    interval = "30s"
+    grace_period = "10s"
+    method = "get"
+    path = "/"
+    protocol = "http"
+    timeout = "5s"
+    tls_skip_verify = false
+
+    [services.http_checks.headers]
+      X-Forwarded-For = "*"
+
+# Volume persistant pour SQLite
+[[mounts]]
+  source = "lemarche_data"
+  destination = "/app/db"
+  initial_size = "1gb"
+
+# Machine optimisée pour le plan gratuit
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+  memory = "256Mi"
