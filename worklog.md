@@ -2776,3 +2776,40 @@ Fix 3 critical backend security bugs: (C1) client-trusted coupon discount allowi
 **Verification:**
 - `npm run lint` — 0 errors
 - Dev server compiles with no errors
+
+---
+## Task ID: TS-fix - TypeScript Build Errors
+### Work Task
+Fix TypeScript build error: `Property 'currentSKU' does not exist on type 'ProductState'` in BuyBox.tsx, and resolve all other TypeScript errors blocking production build.
+
+### Work Summary
+
+**Root Cause Analysis:**
+- Previous tasks (Task ID 2 dead code cleanup, Task ID 4 store refactor, Task ID 10-11 codebase cleanup) identified and attempted to delete dead component files and legacy data files, but these files persisted in the repository
+- The `next.config.ts` had `ignoreBuildErrors: true` removed in Task 10-11, exposing these latent TypeScript errors
+- Dead files referenced properties removed from `ProductState` during the store refactor (currentSKU, quantity, addToCart, etc.)
+- Dead files imported from `@/data/product` which was also supposed to be deleted
+- Dead UI component files imported from packages that were removed (react-day-picker, react-resizable-panels, input-otp)
+
+**Files Deleted (10 files, 2,427 lines):**
+
+1. **Dead product components** (imported removed store properties from `@/data/product`, not imported by any active page):
+   - `src/components/product/BuyBox.tsx` — referenced `currentSKU`, `quantity`, `setQuantity`, `addToCart`, `addToCartToast`, `showShareMenu`, `toggleShareMenu`
+   - `src/components/product/ImageGallery.tsx` — referenced `openLightbox`, `showLightbox`, `closeLightbox`, `lightboxIndex`, `setLightboxIndex`, `selectedImageIndex`, `setSelectedImageIndex`
+   - `src/components/product/ProductInfo.tsx` — referenced `selectedColor`, `selectedSize`, `currentSKU`, `setSelectedColor`, `setSelectedSize`, `toggleShareMenu`
+   - `src/components/product/DeliveryTracker.tsx` — imported from `@/data/product`
+   - `src/components/product/ProductTabs.tsx` — imported from `@/data/product`
+   - `src/components/product/Footer.tsx` — imported from `@/data/product`
+
+2. **Dead UI components** (imported from removed npm packages, not imported by any active page):
+   - `src/components/ui/calendar.tsx` — imported `react-day-picker` (removed in Task 10-11)
+   - `src/components/ui/input-otp.tsx` — imported `input-otp` (removed in Task 10-11)
+   - `src/components/ui/resizable.tsx` — imported `react-resizable-panels` (removed in Task 10-11)
+
+3. **Legacy data file** (variable redeclaration error, only imported by dead files above):
+   - `src/data/product.ts`
+
+**Verification:**
+- `bun run lint` — 0 errors, 6 warnings (all in scripts/generate-images.mjs)
+- `npx tsc --noEmit` — 0 errors in `src/` (remaining 4 errors in `examples/` and `skills/` directories, not part of the Next.js app)
+- No active pages, components, or stores broken by these deletions
