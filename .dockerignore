@@ -22,3 +22,6 @@ claude
 server.log
 dev.log
 upload
+.config
+.accesslog
+.stats
