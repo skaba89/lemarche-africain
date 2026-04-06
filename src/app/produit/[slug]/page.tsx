@@ -206,8 +206,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     ? Math.round(((product.originalPriceGNF - product.priceGNF) / product.originalPriceGNF) * 100)
     : null;
 
-  // Dynamic badge conditions
-  const isNew = product?.createdAt
+  // Dynamic badge conditions — guarded by mounted to avoid hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const isNew = mounted && product?.createdAt
     ? (Date.now() - new Date(product.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000
     : false;
   const isPopular = (product?.salesCount ?? 0) > 50;

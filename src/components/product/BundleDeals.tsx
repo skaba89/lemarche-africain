@@ -177,7 +177,7 @@ export default function BundleDeals() {
               productId: product.id,
               productSlug: product.slug,
               productName: product.name,
-              image: images[0] || '/product-images/default.png',
+              image: images[0] || '/product-images/headphones-main.png',
               color: 'default',
               colorLabel: 'Standard',
               size: 'default',
@@ -278,7 +278,7 @@ export default function BundleDeals() {
                 {bundle.products.map((product, idx) => {
                   let images: string[] = [];
                   try { images = JSON.parse(product.images); } catch { images = []; }
-                  const img = images[0] || '/product-images/default.png';
+                  const img = images[0] || '/product-images/headphones-main.png';
 
                   return (
                     <div key={product.slug} className="flex items-center gap-2">

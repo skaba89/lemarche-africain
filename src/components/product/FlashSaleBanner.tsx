@@ -29,29 +29,39 @@ function formatTime(totalSeconds: number): { hours: string; minutes: string; sec
 }
 
 export function FlashSaleBanner() {
-  // ---- State ----
-  const [timeLeft, setTimeLeft] = useState<number>(() => generateRandomDuration());
-  const [viewerCount, setViewerCount] = useState<number>(() => randomBetween(38, 56));
+  // ---- Use mounted state to avoid hydration mismatch ----
+  const [mounted, setMounted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(5 * 3600); // default 5h
+  const [viewerCount, setViewerCount] = useState<number>(47);
   const [stockClaimed, setStockClaimed] = useState<number>(72);
-  const [itemsLeft, setItemsLeft] = useState<number>(() => randomBetween(5, 14));
+  const [itemsLeft, setItemsLeft] = useState<number>(8);
   const prevStockRef = useRef<number>(72);
+
+  // ---- Initialize random values on client only ----
+  useEffect(() => {
+    setMounted(true);
+    setTimeLeft(generateRandomDuration());
+    setViewerCount(randomBetween(38, 56));
+    setItemsLeft(randomBetween(5, 14));
+  }, []);
 
   // ---- Countdown: tick every 1s ----
   useEffect(() => {
+    if (!mounted) return;
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Reset to a new random duration (recurring flash sale)
           return generateRandomDuration();
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [mounted]);
 
   // ---- Viewer count: fluctuate every 10s ----
   useEffect(() => {
+    if (!mounted) return;
     const interval = setInterval(() => {
       setViewerCount((prev) => {
         const delta = randomBetween(-3, 3);
@@ -60,31 +70,52 @@ export function FlashSaleBanner() {
       });
     }, 10_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [mounted]);
 
   // ---- Stock claimed: slowly increase over time ----
   useEffect(() => {
+    if (!mounted) return;
     const interval = setInterval(() => {
       setStockClaimed((prev) => {
-        if (prev >= 95) return 95; // Cap at 95%
+        if (prev >= 95) return 95;
         const increase = randomBetween(1, 3);
         return Math.min(95, prev + increase);
       });
-    }, 30_000); // Every 30 seconds
+    }, 30_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [mounted]);
 
   // ---- Sync itemsLeft to decrease as stockClaimed increases ----
   useEffect(() => {
+    if (!mounted) return;
     const prevStock = prevStockRef.current;
     if (stockClaimed > prevStock) {
       const decrease = stockClaimed - prevStock;
       setItemsLeft((prev) => Math.max(1, prev - Math.ceil(decrease / 5)));
     }
     prevStockRef.current = stockClaimed;
-  }, [stockClaimed]);
+  }, [stockClaimed, mounted]);
 
   const time = formatTime(timeLeft);
+
+  if (!mounted) {
+    // Return skeleton during SSR to avoid hydration mismatch
+    return (
+      <div className="relative w-full overflow-hidden rounded-lg">
+        <div className="relative bg-gradient-to-r from-[#B71C1C] via-[#C62828] to-[#880E4F] px-4 py-4 sm:px-6 sm:py-5">
+          <div className="relative z-10 flex items-center gap-2">
+            <Flame className="h-5 w-5 text-[#FFD814] animate-pulse" />
+            <span className="text-xs font-extrabold tracking-wider text-[#FFD814] sm:text-sm">
+              VENTE FLASH
+            </span>
+            <span className="rounded-full border border-[#FFD814]/40 bg-[#FFD814]/10 px-2.5 py-1 text-xs font-bold text-[#FFD814]">
+              -35%
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full overflow-hidden rounded-lg">
@@ -184,48 +215,6 @@ export function FlashSaleBanner() {
           </div>
         </div>
       </div>
-
-      {/* ---- Inline keyframes ---- */}
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% {
-            background-position: 200% 0;
-          }
-          100% {
-            background-position: -200% 0;
-          }
-        }
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.92;
-            transform: scale(1.03);
-          }
-        }
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg);
-          }
-          25% {
-            transform: translateY(-3px) rotate(2deg);
-          }
-          75% {
-            transform: translateY(1px) rotate(-1deg);
-          }
-        }
-        .animate-shimmer {
-          animation: shimmer 3s ease-in-out infinite;
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 2s ease-in-out infinite;
-        }
-        .animate-float {
-          animation: float 2.5s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }

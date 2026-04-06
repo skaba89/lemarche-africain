@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Star, Heart, ShoppingCart, Truck, ShieldCheck, ArrowUpDown, Eye } from 'lucide-react';
 import { useProductStore, formatPrice } from '@/store/product-store';
 import { useCartStore } from '@/store/cart-store';
@@ -42,6 +42,9 @@ export default function ProductCard({ product }: ProductCardProps) {
       if (Array.isArray(stored) && stored.includes(product.slug)) setIsWishlisted(true);
     } catch { /* ignore */ }
   }, [product.slug]);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const images: string[] = useMemo(() => {
     try { return JSON.parse(product.images); } catch { return []; }
   }, [product.images]);
@@ -50,8 +53,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((product.originalPriceGNF - product.priceGNF) / product.originalPriceGNF) * 100)
     : null;
 
-  // Dynamic badge logic
-  const isNew = product.createdAt
+  // Dynamic badge logic — use mounted to avoid hydration mismatch
+  const isNew = mounted && product.createdAt
     ? (Date.now() - new Date(product.createdAt).getTime()) < 30 * 24 * 60 * 60 * 1000
     : false;
   const isPopular = (product.salesCount ?? 0) > 50;
